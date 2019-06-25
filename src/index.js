@@ -1,4 +1,5 @@
 const { GraphQLServer } = require('graphql-yoga');
+const { prisma } = require('./generated/prisma-client');
 
 /* 1
  * The typeDefs constant defines your GraphQL schema. Here, it defines a simple Query type with one field called info.
@@ -17,23 +18,19 @@ let links = [
   },
 ];
 
-let idCount = links.length;
 const resolvers = {
   Query: {
     info: () => `This is the API of a Hackernews Clone`,
-    // 2
-    feed: () => links,
+    feed: (root, args, context, info) => {
+      return context.prisma.links();
+    },
   },
   Mutation: {
-    // 2
-    post: (parent, args) => {
-      const link = {
-        id: `link-${idCount++}`,
-        description: args.description,
+    post: (root, args, context) => {
+      return context.prisma.createLink({
         url: args.url,
-      };
-      links.push(link);
-      return link;
+        description: args.description,
+      });
     },
   },
 };
@@ -44,5 +41,6 @@ const resolvers = {
 const server = new GraphQLServer({
   typeDefs: './src/schema.graphql',
   resolvers,
+  context: { prisma },
 });
 server.start(() => console.log(`Server is running on http://localhost:4000`));
